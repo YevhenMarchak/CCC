@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dokumentacja projektu RoomFlow</title>
+</head>
+<body>
+
+<h1>Dokumentacja projektu RoomFlow</h1>
+
+<h2>1. Opisz, jak aplikacja rozróżnia użytkowników o różnych uprawnieniach. Wskaż przykład sytuacji, w której jedna osoba może wykonać daną akcję, a inna nie powinna mieć do niej dostępu. Wyjaśnij, jak projekt to kontroluje.</h2>
+
+<p>
+System RoomFlow wykorzystuje dwa poziomy uprawnień: administratora oraz nauczyciela. Informacja o roli użytkownika przechowywana jest w kolumnie <code>role</code> tabeli <code>users</code>.
+</p>
+
+<p>
+Administrator posiada dostęp do panelu administracyjnego, w którym może zarządzać użytkownikami, salami, harmonogramami zajęć oraz wszystkimi rezerwacjami. Nauczyciel ma dostęp jedynie do własnych rezerwacji, harmonogramu oraz możliwości tworzenia nowych rezerwacji.
+</p>
+
+<p>
+Przykładem różnicy uprawnień jest możliwość zarządzania użytkownikami. Administrator może dodawać, edytować i usuwać konta użytkowników, natomiast nauczyciel nie posiada dostępu do tych funkcji.
+</p>
+
+<p>
+Kontrola uprawnień realizowana jest poprzez sprawdzanie zalogowanego użytkownika oraz jego roli. Odpowiednie trasy są dostępne wyłącznie dla użytkowników posiadających wymagane uprawnienia, dzięki czemu osoba nieuprawniona nie może uzyskać dostępu do funkcji administracyjnych.
+</p>
+
+<hr>
+
+<h2>2. Wybierz jedną konkretną akcję w aplikacji. Opisz krok po kroku drogę, jaką przebywają dane od momentu wywołania akcji w interfejsie użytkownika aż do trwałego przetworzenia ich przez system i zwrócenia wyniku.</h2>
+
+<p>Jako przykład wybrano proces tworzenia nowej rezerwacji sali.</p>
+
+<ol>
+<li>Użytkownik przechodzi do zakładki „Reserve Room”.</li>
+<li>Formularz w widoku Blade zbiera dane dotyczące daty, godzin oraz wybranej sali.</li>
+<li>Po wysłaniu formularza żądanie POST trafia do odpowiedniej trasy w pliku <code>routes/web.php</code>.</li>
+<li>Trasa przekazuje żądanie do metody <code>store()</code> klasy <code>ReservationController</code>.</li>
+<li>Kontroler wykonuje walidację danych wprowadzonych przez użytkownika.</li>
+<li>Następnie sprawdzane są konflikty z istniejącymi rezerwacjami oraz harmonogramem zajęć.</li>
+<li>Jeżeli konflikt nie występuje, tworzony jest nowy rekord w tabeli <code>reservations</code> za pomocą modelu <code>Reservation</code>.</li>
+<li>Dane zostają zapisane w bazie MySQL.</li>
+<li>Użytkownik zostaje przekierowany do zakładki „My Reservations”, gdzie może zobaczyć nowo utworzoną rezerwację.</li>
+</ol>
+
+<hr>
+
+<h2>3. W swoim opisie zidentyfikuj wszystkie warstwy i komponenty aplikacji, przez które przechodzi to żądanie, oraz wyjaśnij ich rolę w tym konkretnym procesie.</h2>
+
+<p>
+Proces tworzenia rezerwacji obejmuje kilka warstw aplikacji.
+</p>
+
+<p>
+Pierwszą warstwą jest widok Blade odpowiedzialny za wyświetlenie formularza użytkownikowi i pobranie danych wejściowych.
+</p>
+
+<p>
+Drugą warstwę stanowi routing Laravel znajdujący się w pliku <code>routes/web.php</code>. Odpowiada on za przekazanie żądania HTTP do odpowiedniego kontrolera.
+</p>
+
+<p>
+Kolejną warstwą jest kontroler <code>ReservationController</code>, w którym znajduje się główna logika biznesowa związana z walidacją danych oraz wykrywaniem konfliktów.
+</p>
+
+<p>
+Następnie wykorzystywane są modele Eloquent, takie jak <code>Reservation</code>, <code>Room</code> oraz <code>Schedule</code>, które odpowiadają za komunikację z bazą danych.
+</p>
+
+<p>
+Dane są zapisywane w relacyjnej bazie danych MySQL.
+</p>
+
+<p>
+Po wykonaniu operacji kontroler zwraca odpowiedni widok Blade zawierający wynik działania.
+</p>
+
+<hr>
+
+<h2>4. Wskaż miejsce, w którym aplikacja sprawdza poprawność danych wpisanych przez użytkownika. Opisz, jakie dane są sprawdzane, jakie błędy mogą zostać wykryte i co zobaczy użytkownik, jeśli wpisze niepoprawne dane.</h2>
+
+<p>
+Walidacja danych została zaimplementowana w metodzie <code>store()</code> klasy <code>ReservationController</code>.
+</p>
+
+<p>Sprawdzane są między innymi:</p>
+
+<ul>
+<li>istnienie wybranej sali,</li>
+<li>poprawność daty,</li>
+<li>godzina rozpoczęcia rezerwacji,</li>
+<li>godzina zakończenia rezerwacji,</li>
+<li>poprawna kolejność godzin.</li>
+</ul>
+
+<p>Dodatkowo system wykrywa:</p>
+
+<ul>
+<li>próbę utworzenia rezerwacji w przeszłości,</li>
+<li>próbę utworzenia rezerwacji krótszej niż 15 minut,</li>
+<li>nakładanie się rezerwacji,</li>
+<li>kolizję z harmonogramem zajęć.</li>
+</ul>
+
+<p>
+W przypadku wykrycia błędu użytkownik pozostaje na formularzu i otrzymuje odpowiedni komunikat informujący o przyczynie odrzucenia operacji.
+</p>
+
+<hr>
+
+<h2>5. Wskaż przykład widoku, który jest dobrze zorganizowany. Opisz, dlaczego ten widok jest czytelny, czy unika powtarzania tych samych fragmentów oraz czy łatwo byłoby go zmienić lub rozbudować.</h2>
+
+<p>
+Przykładem dobrze zorganizowanego widoku jest zakładka „My Reservations”.
+</p>
+
+<p>
+Widok został podzielony na logiczne sekcje, a dane wyświetlane są w pętli <code>foreach</code>, dzięki czemu nie występuje powielanie kodu.
+</p>
+
+<p>
+Każda rezerwacja prezentowana jest w identycznym komponencie zawierającym informacje o sali, dacie, godzinach oraz statusie.
+</p>
+
+<p>
+Zastosowanie wspólnego układu strony oraz klas Tailwind CSS ułatwia dalszą rozbudowę i modyfikację wyglądu bez konieczności przepisywania całego widoku.
+</p>
+
+<hr>
+
+<h2>6. Wskaż jedną funkcjonalność, której nie widać od razu w interfejsie, ale która jest ważna dla działania projektu.</h2>
+
+<p>
+Jedną z najważniejszych funkcjonalności ukrytych przed użytkownikiem jest sprawdzanie konfliktów rezerwacji.
+</p>
+
+<p>
+Mechanizm ten został zaimplementowany w metodzie <code>store()</code> klasy <code>ReservationController</code>.
+</p>
+
+<p>
+Podczas tworzenia nowej rezerwacji system analizuje istniejące wpisy w tabeli <code>reservations</code>, a także harmonogram zajęć zapisany w tabeli <code>schedules</code>.
+</p>
+
+<p>
+Jeżeli wybrana sala jest zajęta lub planowane zajęcia pokrywają się czasowo z nową rezerwacją, operacja zostaje anulowana.
+</p>
+
+<p>
+Dzięki temu niemożliwe jest jednoczesne przypisanie tej samej sali do dwóch różnych wydarzeń.
+</p>
+
+<hr>
+
+<h2>7. Opisz, w jaki sposób aplikacja rozpoznaje, co użytkownik chce zrobić.</h2>
+
+<p>
+Aplikacja wykorzystuje mechanizm routingu frameworka Laravel.
+</p>
+
+<p>
+Każda operacja posiada własny adres URL oraz typ żądania HTTP.
+</p>
+
+<ul>
+<li>GET służy do wyświetlania danych,</li>
+<li>POST odpowiada za tworzenie nowych rekordów,</li>
+<li>PUT wykorzystywany jest podczas edycji danych,</li>
+<li>DELETE odpowiada za usuwanie rekordów.</li>
+</ul>
+
+<p>
+Żądania są definiowane w pliku <code>routes/web.php</code>, a następnie przekazywane do odpowiednich metod kontrolerów.
+</p>
+
+<p>
+Dzięki temu framework jest w stanie rozpoznać, czy użytkownik chce pobrać dane, utworzyć nowy rekord, zmodyfikować istniejący wpis lub usunąć go z systemu.
+</p>
+
+<hr>
+
+<h2>8. Opisz jeden przykład powiązania danych w projekcie.</h2>
+
+<p>
+Przykładem relacji występującej w projekcie jest zależność pomiędzy użytkownikiem a rezerwacjami.
+</p>
+
+<p>
+Jeden użytkownik może posiadać wiele rezerwacji, natomiast każda rezerwacja należy do jednego użytkownika.
+</p>
+
+<p>
+Relacja ta została zaimplementowana za pomocą metod:
+</p>
+
+<ul>
+<li><code>hasMany()</code> w modelu <code>User</code>,</li>
+<li><code>belongsTo()</code> w modelu <code>Reservation</code>.</li>
+</ul>
+
+<p>
+W bazie danych powiązanie realizowane jest poprzez klucz obcy <code>user_id</code>.
+</p>
+
+<p>
+W widokach Blade możliwe jest wykorzystanie zależności w postaci:
+</p>
+
+<pre><code>$reservation->user->name</code></pre>
+
+<p>
+co pozwala na wyświetlenie nazwiska prowadzącego przypisanego do danej rezerwacji.
+</p>
+
+<hr>
+
+<h2>9. Opisz, jak aplikacja reaguje na nietypową sytuację.</h2>
+
+<p>
+Przykładem sytuacji nietypowej jest próba utworzenia rezerwacji w przeszłości.
+</p>
+
+<p>
+W metodzie <code>store()</code> klasy <code>ReservationController</code> wykorzystywana jest biblioteka Carbon, która porównuje wybraną datę z aktualnym czasem.
+</p>
+
+<p>
+Jeżeli użytkownik wybierze termin wcześniejszy od bieżącego, operacja zostanie przerwana.
+</p>
+
+<p>
+Użytkownik pozostaje na tej samej stronie, a system wyświetla komunikat informujący, że nie można utworzyć rezerwacji w przeszłości.
+</p>
+
+<p>
+Takie rozwiązanie chroni bazę danych przed zapisaniem nieprawidłowych informacji.
+</p>
+
+<hr>
+
+<h2>10. Wskaż jedno miejsce w projekcie, które Twoim zdaniem powinno zostać poprawione technicznie. Opisz konkretny problem, jego wpływ na działanie lub rozwijanie projektu oraz zaproponuj sposób poprawy.</h2>
+
+<p>
+Jednym z miejsc wymagających poprawy jest klasa <code>ReservationController</code>.
+</p>
+
+<p>
+Obecnie znajduje się w niej duża ilość logiki biznesowej związanej z walidacją danych, wykrywaniem konfliktów rezerwacji oraz komunikacją z bazą danych.
+</p>
+
+<p>
+Takie rozwiązanie działa poprawnie, jednak wraz z rozwojem projektu może utrudniać jego dalszą rozbudowę i utrzymanie.
+</p>
+
+<p>
+Długie metody stają się mniej czytelne i trudniejsze do testowania.
+</p>
+
+<p>
+W przyszłości warto wydzielić część logiki do osobnych klas serwisowych lub wykorzystać klasy Form Request dostępne w Laravelu.
+</p>
+
+<p>
+Dzięki temu kontrolery będą odpowiedzialne wyłącznie za obsługę żądań, a logika biznesowa zostanie rozdzielona na mniejsze, łatwiejsze do utrzymania elementy.
+</p>
+
+<hr>
+
+<h2>11. Napisz 6–10 zdań, w których wyjaśnisz, dlaczego projekt zasługuje na wskazaną ocenę.</h2>
+
+<p>
+Projekt RoomFlow został wykonany jako kompletna aplikacja internetowa służąca do zarządzania salami dydaktycznymi oraz rezerwacjami na uczelni.
+</p>
+
+<p>
+W projekcie zaimplementowano system uwierzytelniania użytkowników oraz podział uprawnień pomiędzy administratorem i nauczycielem.
+</p>
+
+<p>
+Aplikacja wykorzystuje relacyjną bazę danych oraz mechanizm ORM Eloquent dostępny w frameworku Laravel.
+</p>
+
+<p>
+System obsługuje tworzenie, edycję oraz usuwanie danych, a także posiada rozbudowane mechanizmy walidacji i obsługi błędów.
+</p>
+
+<p>
+Zaimplementowano wyszukiwanie, filtrowanie oraz paginację danych, co pozwala na wygodną pracę z większą liczbą rekordów.
+</p>
+
+<p>
+Projekt zawiera wiele powiązań pomiędzy modelami oraz wykorzystuje architekturę MVC.
+</p>
+
+<p>
+Interfejs użytkownika został wykonany z wykorzystaniem frameworka Tailwind CSS i zapewnia przejrzysty sposób prezentacji danych.
+</p>
+
+<p>
+Kod projektu został uporządkowany zgodnie ze standardami Laravel, a poszczególne funkcjonalności zostały rozdzielone pomiędzy kontrolery, modele i widoki.
+</p>
+
+<p>
+Z tego względu uważam, że projekt spełnia wymagania stawiane dla wysokiej oceny.
+</p>
+
+<hr>
+
+<hr>
+
+<h2>12. Co należy poprawić w pierwszej kolejności, aby projekt zasługiwał na wyższą ocenę? Podaj jedną konkretną zmianę i wyjaśnij, dlaczego właśnie ona jest najważniejsza.</h2>
+
+<p>
+Najważniejszą zmianą, która mogłaby dodatkowo podnieść jakość projektu, byłoby wydzielenie logiki biznesowej z kontrolerów do osobnych klas serwisowych oraz zastosowanie klas Form Request do walidacji danych.
+</p>
+
+<p>
+Obecnie większość logiki odpowiedzialnej za tworzenie rezerwacji znajduje się bezpośrednio w kontrolerach. Takie rozwiązanie jest poprawne, jednak przy większych projektach może prowadzić do powstawania bardzo rozbudowanych metod.
+</p>
+
+<p>
+Rozdzielenie odpowiedzialności pomiędzy kontrolery, serwisy oraz klasy odpowiedzialne za walidację zwiększyłoby czytelność kodu, ułatwiłoby jego testowanie oraz dalszy rozwój aplikacji.
+</p>
+
+<p>
+Rozwiązanie takie jest również zgodne z dobrymi praktykami stosowanymi w projektach tworzonych z wykorzystaniem frameworka Laravel.
+</p>
+
+<hr>
+
+<h2>13. Wskaż co najmniej 5 fragmentów kodu lub zrzutów ekranu reprezentujących poszczególne etapy procesu tworzenia rezerwacji. Każdy fragment krótko podpisz.</h2>
+
+<h3>Fragment 1 – Formularz w widoku <code>reserve-room.blade.php</code></h3>
+
+<p>
+Widok Blade odpowiada za pobranie od użytkownika informacji dotyczących daty rezerwacji, godziny rozpoczęcia, godziny zakończenia oraz wymaganej pojemności sali.
+</p>
+
+<hr>
+
+<h3>Fragment 2 – Definicja trasy w pliku <code>routes/web.php</code></h3>
+
+<p>
+Trasa HTTP typu POST odpowiada za przekazanie danych z formularza do odpowiedniej metody kontrolera.
+</p>
+
+<hr>
+
+<h3>Fragment 3 – Metoda <code>store()</code> klasy <code>ReservationController</code></h3>
+
+<p>
+Kontroler odbiera dane przesłane przez użytkownika oraz rozpoczyna realizację logiki biznesowej odpowiedzialnej za utworzenie nowej rezerwacji.
+</p>
+
+<hr>
+
+<h3>Fragment 4 – Walidacja danych wejściowych</h3>
+
+<p>
+W metodzie <code>store()</code> wykonywana jest walidacja poprawności danych oraz sprawdzane są ograniczenia dotyczące czasu trwania rezerwacji i poprawności dat.
+</p>
+
+<hr>
+
+<h3>Fragment 5 – Sprawdzanie konfliktów z istniejącymi rezerwacjami i harmonogramem</h3>
+
+<p>
+System analizuje istniejące rezerwacje oraz harmonogram zajęć, aby uniemożliwić przypisanie tej samej sali do dwóch różnych wydarzeń odbywających się w tym samym czasie.
+</p>
+
+<hr>
+
+<h3>Fragment 6 – Zapis danych do bazy danych</h3>
+
+<p>
+Model <code>Reservation</code> wykorzystuje metodę <code>create()</code>, która powoduje utworzenie nowego rekordu w tabeli <code>reservations</code>.
+</p>
+
+<hr>
+
+<h3>Fragment 7 – Przekierowanie użytkownika</h3>
+
+<p>
+Po poprawnym zapisaniu danych użytkownik zostaje przekierowany do zakładki „My Reservations”, gdzie może zobaczyć nowo utworzoną rezerwację.
+</p>
+
+<hr>
+
+<h2>14. Wskaż miejsce, w którym aplikacja sprawdza poprawność danych wpisanych przez użytkownika.</h2>
+
+<p>
+Sprawdzanie poprawności danych realizowane jest w metodzie <code>store()</code> klasy <code>ReservationController</code>.
+</p>
+
+<p>
+Walidowane są między innymi:
+</p>
+
+<ul>
+    <li>identyfikator sali,</li>
+    <li>data rezerwacji,</li>
+    <li>godzina rozpoczęcia,</li>
+    <li>godzina zakończenia,</li>
+    <li>kolejność godzin.</li>
+</ul>
+
+<p>
+Dodatkowo system sprawdza:
+</p>
+
+<ul>
+    <li>czy data nie znajduje się w przeszłości,</li>
+    <li>czy długość rezerwacji wynosi co najmniej 15 minut,</li>
+    <li>czy nie występują konflikty z innymi rezerwacjami,</li>
+    <li>czy nie występują konflikty z harmonogramem zajęć.</li>
+</ul>
+
+<p>
+W przypadku wykrycia błędu użytkownik pozostaje na formularzu i otrzymuje odpowiedni komunikat informujący o przyczynie odrzucenia operacji.
+</p>
+
+<hr>
+
+<h2>15. Wskaż przykład widoku, który jest dobrze zorganizowany.</h2>
+
+<p>
+Przykładem dobrze zorganizowanego widoku jest zakładka „Reservations” dostępna dla administratora.
+</p>
+
+<p>
+Widok został podzielony na sekcje odpowiedzialne za:
+</p>
+
+<ul>
+    <li>wyszukiwanie,</li>
+    <li>filtrowanie danych,</li>
+    <li>prezentację listy rezerwacji,</li>
+    <li>paginację wyników.</li>
+</ul>
+
+<p>
+Dane wyświetlane są przy pomocy pętli <code>foreach</code>, dzięki czemu nie występuje powielanie kodu.
+</p>
+
+<p>
+Wspólny układ aplikacji oparty na komponencie <code>x-app-layout</code> pozwala na zachowanie jednolitego wyglądu wszystkich stron systemu.
+</p>
+
+<p>
+Zastosowanie frameworka Tailwind CSS ułatwia dalszą rozbudowę interfejsu bez konieczności modyfikowania całej struktury widoku.
+</p>
+
+<hr>
+
+<h2>16. Wskaż jedną funkcjonalność, której nie widać bezpośrednio w interfejsie użytkownika, ale która jest istotna dla działania projektu.</h2>
+
+<p>
+Jedną z najważniejszych funkcjonalności niewidocznych dla użytkownika jest mechanizm sprawdzania konfliktów pomiędzy rezerwacjami oraz harmonogramem zajęć.
+</p>
+
+<p>
+Mechanizm ten znajduje się w metodzie <code>store()</code> klasy <code>ReservationController</code>.
+</p>
+
+<p>
+Przed zapisaniem nowej rezerwacji system sprawdza:
+</p>
+
+<ul>
+    <li>istniejące rezerwacje,</li>
+    <li>harmonogram zajęć prowadzących,</li>
+    <li>dodatkowy bufor czasowy wynoszący 15 minut po zakończeniu zajęć.</li>
+</ul>
+
+<p>
+Jeżeli zostanie wykryta kolizja czasowa, nowa rezerwacja nie zostanie utworzona.
+</p>
+
+<p>
+Dzięki temu system zapobiega sytuacji, w której ta sama sala byłaby wykorzystywana jednocześnie przez kilka różnych wydarzeń.
+</p>
+
+<hr>
+
+<h2>17. Opisz, w jaki sposób aplikacja rozpoznaje, co użytkownik chce zrobić.</h2>
+
+<p>
+Framework Laravel wykorzystuje mechanizm routingu do rozpoznawania żądań użytkownika.
+</p>
+
+<p>
+Każda operacja posiada własny adres URL oraz typ żądania HTTP.
+</p>
+
+<ul>
+    <li>GET odpowiada za pobieranie danych,</li>
+    <li>POST odpowiada za tworzenie nowych rekordów,</li>
+    <li>PUT wykorzystywany jest podczas edycji istniejących danych,</li>
+    <li>DELETE odpowiada za usuwanie rekordów.</li>
+</ul>
+
+<p>
+Definicje tras znajdują się w pliku <code>routes/web.php</code>.
+</p>
+
+<p>
+Po otrzymaniu żądania framework przekazuje je do odpowiedniej metody kontrolera, która wykonuje logikę biznesową, komunikuje się z bazą danych oraz zwraca użytkownikowi odpowiedni widok Blade.
+</p>
+
+<p>
+Dzięki temu aplikacja jest w stanie rozróżnić, czy użytkownik chce wyświetlić dane, utworzyć nowy rekord, zmodyfikować istniejący wpis lub usunąć go z systemu.
+</p>
+
+<hr>
+
+<h2>18. Opisz jeden przykład powiązania danych w projekcie.</h2>
+
+<p>
+Jednym z przykładów relacji występujących w projekcie jest powiązanie pomiędzy użytkownikiem oraz rezerwacjami.
+</p>
+
+<p>
+Jeden użytkownik może posiadać wiele rezerwacji, natomiast każda rezerwacja należy wyłącznie do jednego użytkownika. Relacja ta została zaimplementowana przy pomocy mechanizmu ORM Eloquent.
+</p>
+
+<p>
+W modelu <code>User</code> wykorzystano relację:
+</p>
+
+<pre><code>public function reservations()
+{
+    return $this->hasMany(Reservation::class);
+}</code></pre>
+
+<p>
+Natomiast w modelu <code>Reservation</code> zastosowano relację:
+</p>
+
+<pre><code>public function user()
+{
+    return $this->belongsTo(User::class);
+}</code></pre>
+
+<p>
+W bazie danych powiązanie realizowane jest poprzez klucz obcy <code>user_id</code>.
+</p>
+
+<p>
+Dzięki temu w widokach można wykorzystać zapis:
+</p>
+
+<pre><code>$reservation->user->name</code></pre>
+
+<p>
+umożliwiający wyświetlenie nazwiska użytkownika odpowiedzialnego za daną rezerwację.
+</p>
+
+<hr>
+
+<h2>19. Opisz, jak aplikacja reaguje na nietypową sytuację.</h2>
+
+<p>
+Przykładem nietypowej sytuacji jest próba utworzenia rezerwacji w przeszłości.
+</p>
+
+<p>
+W metodzie <code>store()</code> klasy <code>ReservationController</code> wykorzystywana jest biblioteka Carbon, która porównuje wybraną datę i godzinę z aktualnym czasem.
+</p>
+
+<p>
+Jeżeli użytkownik wybierze termin wcześniejszy od bieżącego, proces tworzenia rezerwacji zostaje przerwany.
+</p>
+
+<p>
+Użytkownik pozostaje na formularzu, a na ekranie wyświetlany jest komunikat informujący, że nie można utworzyć rezerwacji w przeszłości.
+</p>
+
+<p>
+Podobny mechanizm stosowany jest również w przypadku:
+</p>
+
+<ul>
+    <li>nakładania się rezerwacji,</li>
+    <li>zbyt krótkiego czasu trwania rezerwacji,</li>
+    <li>kolizji z harmonogramem zajęć.</li>
+</ul>
+
+<p>
+Dzięki temu system zabezpiecza bazę danych przed zapisaniem niepoprawnych informacji.
+</p>
+
+<hr>
+
+<h2>20. Wskaż jedno miejsce w projekcie, które Twoim zdaniem powinno zostać poprawione technicznie.</h2>
+
+<p>
+Najbardziej rozbudowaną częścią projektu jest klasa <code>ReservationController</code>.
+</p>
+
+<p>
+Znajduje się w niej duża ilość logiki biznesowej odpowiedzialnej za:
+</p>
+
+<ul>
+    <li>walidację danych,</li>
+    <li>wykrywanie konfliktów rezerwacji,</li>
+    <li>komunikację z bazą danych,</li>
+    <li>obsługę błędów.</li>
+</ul>
+
+<p>
+Takie rozwiązanie działa poprawnie, jednak wraz z rozwojem projektu może utrudniać jego dalszą rozbudowę i utrzymanie.
+</p>
+
+<p>
+W przyszłości warto przenieść część logiki do osobnych klas serwisowych oraz wykorzystać klasy Form Request dostępne w frameworku Laravel. Pozwoliłoby to na zwiększenie czytelności kodu oraz ułatwiłoby jego testowanie.
+</p>
+
+<hr>
+
+<h2>21. Napisz 6–10 zdań, w których wyjaśnisz, dlaczego projekt zasługuje na wskazaną ocenę.</h2>
+
+<p>
+Projekt RoomFlow został wykonany jako kompletna aplikacja internetowa służąca do zarządzania salami dydaktycznymi oraz procesem ich rezerwacji. W projekcie zaimplementowano system uwierzytelniania użytkowników oraz podział uprawnień pomiędzy administratorem i nauczycielem.
+</p>
+
+<p>
+Aplikacja wykorzystuje relacyjną bazę danych MySQL oraz mechanizm ORM Eloquent dostępny w frameworku Laravel. System obsługuje tworzenie, edycję i usuwanie danych oraz zawiera rozbudowane mechanizmy walidacji i obsługi błędów.
+</p>
+
+<p>
+Zaimplementowano wyszukiwanie, filtrowanie oraz paginację danych, co pozwala na wydajną pracę nawet przy większej liczbie rekordów. Projekt wykorzystuje architekturę MVC oraz relacje pomiędzy modelami.
+</p>
+
+<p>
+Interfejs użytkownika został wykonany z wykorzystaniem frameworka Tailwind CSS oraz komponentów Blade. Dodatkowo zastosowano mechanizmy zabezpieczające przed tworzeniem błędnych lub kolidujących rezerwacji.
+</p>
+
+<p>
+Z tego względu uważam, że projekt spełnia wymagania stawiane dla wysokiej oceny.
+</p>
+
+<hr>
+
+<h2>22. Co należy poprawić w pierwszej kolejności, aby projekt zasługiwał na wyższą ocenę?</h2>
+
+<p>
+Najważniejszą zmianą, która mogłaby jeszcze zwiększyć jakość projektu, byłoby wydzielenie logiki biznesowej z kontrolerów do osobnych klas serwisowych oraz zastosowanie klas Form Request odpowiedzialnych za walidację danych.
+</p>
+
+<p>
+Obecnie większość logiki związanej z obsługą rezerwacji znajduje się bezpośrednio w kontrolerach. Takie rozwiązanie jest poprawne, jednak przy większych projektach może prowadzić do powstawania bardzo rozbudowanych metod.
+</p>
+
+<p>
+Rozdzielenie odpowiedzialności pomiędzy kontrolery, serwisy oraz klasy odpowiedzialne za walidację zwiększyłoby czytelność kodu, ułatwiłoby testowanie oraz dalszy rozwój aplikacji.
+</p>
+
+<p>
+Rozwiązanie takie jest zgodne z dobrymi praktykami stosowanymi w projektach tworzonych z wykorzystaniem frameworka Laravel.
+</p>
+
+<hr>
+
+<h2>23. Wskaż przykład projektu z grupy, który oceniasz jako mocniejszy od Twojego projektu oraz projektu słabszego od Twojego projektu.</h2>
+
+<p>
+Nie jestem w stanie jednoznacznie wskazać konkretnych projektów z grupy, ponieważ ich pełna funkcjonalność oraz jakość wykonania nie były mi znane.
+</p>
+
+<p>
+Przy ocenie projektów należy brać pod uwagę między innymi:
+</p>
+
+<ul>
+    <li>kompletność funkcjonalności,</li>
+    <li>organizację kodu,</li>
+    <li>wykorzystanie bazy danych,</li>
+    <li>zastosowanie mechanizmów walidacji,</li>
+    <li>obsługę uprawnień użytkowników,</li>
+    <li>bezpieczeństwo aplikacji,</li>
+    <li>jakość interfejsu użytkownika,</li>
+    <li>poziom trudności realizowanego problemu.</li>
+</ul>
+
+<p>
+Moim zdaniem projekt RoomFlow jest rozbudowaną aplikacją wykorzystującą wiele mechanizmów frameworka Laravel, takich jak routing, kontrolery, modele Eloquent, relacje pomiędzy tabelami, walidację danych oraz podział uprawnień użytkowników.
+</p>
+
+<p>
+Dzięki temu projekt prezentuje poziom odpowiadający zaawansowanej aplikacji CRUD przeznaczonej do zarządzania procesem rezerwacji sal dydaktycznych.
+</p>
+
+</body>
+</html>
